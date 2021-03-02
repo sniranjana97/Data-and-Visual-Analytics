@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <title>nsivasambu3</title>
+</head>
+<style>
+
+.counties {
+  fill: none;
+}
+
+.states {
+  fill: none;
+  stroke: #fff;
+  stroke-linejoin: round;
+}
+
+.axis path {
+  fill: none;
+    stroke: none;
+}
+.axis line {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+}
+
+.axis text {
+    font-family: sans-serif;
+    font-size: 11px;
+}
+
+path {
+  stroke: #3CB371;
+  stroke-width: 0.5px;
+}
+
+.legend text {
+  font-family: sans-serif;
+    font-size: 11px;
+}
+
+</style>
+<svg width="1050" height="600"></svg>
+<script type= "text/javascript" src="../lib/d3.v5.min.js"></script>
+<script type="text/javascript" src="../lib/d3-scale-chromatic.v1.min.js"></script>
+<script type="text/javascript" src="../lib/topojson.v2.min.js"></script>
+<script type="text/javascript" src="../lib/d3-tip.min.js"></script>
+<script>
+
+var svg = d3.select("svg").attr("transform", "translate(200,100)"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+
+d3.select("#map").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+var countypoverty = d3.map();
+var statistics = d3.map();
+
+var path = d3.geoPath();
+
+var x = d3.scaleLinear()
+    .domain([1, 10])
+    .rangeRound([600, 860]);
+
+var color = d3.scaleLinear()
+    .domain(d3.range(2,20, 2))
+    .range(["#ffffe5","#f7fcb9", "#d9f0a3", "#addd8e", "#78c679", "#41ab5d", "#238443", "#006837", "#004529"]);
+
+var g = svg.append("g")
+    .attr("class", "key")
+    .attr("transform", "translate(0,40)");
+
+var legend = g.selectAll(".legend")
+            .data(color.ticks(11))
+          .enter().append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) { return "translate(" + (width-50) + "," + (30 + i * 30) + ")"; });
+
+legend.append("rect")
+  .attr("width", 20)
+  .attr("height", 30)
+  .style("fill", color);
+
+legend.append("text")
+    .attr("x", 2)
+      .attr("y", -25)
+      .attr("dy", "40px")
+      .attr("dx", "20px")
+      .text(function(d) { return d + "%"});
+
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", width / 3)
+    .attr("y", -20)
+    .attr("fill", "#000")
+    .attr("text-anchor", "start")
+    .attr("font-weight", "bold")
+    .attr("font-size", "20")
+    .text("CHOROPLETH MAP - POVERTY STATISTICS");
+
+var promises = [
+  d3.json("us.json"),
+  d3.csv("county_poverty.csv", function(d) {
+    var obj = {};
+      obj.State = d.State;
+      obj.County = d.County;
+      obj.Poverty = d.Poverty;
+      countypoverty.set(d.CensusId, obj)
+  }),
+  d3.csv("county_detail.csv", function(d){
+    var obj = {};
+      obj.TotalPop = d.TotalPop;
+      obj.IncomePerCap = d.IncomePerCap;
+      statistics.set(d.CensusId, obj);
+  })
+]
+
+Promise.all(promises).then(ready)
+
+function ready([us]) {
+    var counties =svg.append("g")
+      .attr("class", "counties");
+    counties.selectAll("path")
+    .data(topojson.feature(us, us.objects.counties).features)
+    .enter().append("path")
+      .attr("fill", function(d) {
+        if(countypoverty.get(d.id)){
+        return color(countypoverty.get(d.id).Poverty); }})
+      .attr("d", path)
+
+  svg.append("path")
+      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+      .attr("class", "states")
+      .attr("d", path);
+
+  var generateTooltip = function(d) {
+      return "<p style= 'background-color:moccasin;opacity:0.8;padding:8px'>" +
+      "State:" + (countypoverty.get(d.id).State) + "<br>" +
+      "County: " + (countypoverty.get(d.id).County) + "<br>"  +
+      "Poverty rate: " + (countypoverty.get(d.id).Poverty) + "% <br>"  +
+      "Total Population: " + (statistics.get(d.id).TotalPop) + "<br>" +
+      "Income Per Capita: " + (statistics.get(d.id).IncomePerCap) + "<br>" +
+      "</p>";
+    }
+
+    tip = d3.tip().attr('class', 'd3-tip').html(function(d) { return generateTooltip(d); }).direction('e').offset([50, 50]);
+
+  counties.call(tip)
+
+  counties.selectAll('path')
+    .on('mouseover', tip.show)
+    .on('mouseout', tip.hide)
+
+}
+
+</script>

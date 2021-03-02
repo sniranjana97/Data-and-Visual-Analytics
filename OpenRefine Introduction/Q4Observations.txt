@@ -1,0 +1,15 @@
+c.i.a) 47
+
+c.i.b) 5 new columns are created
+
+c.ii) 566 clusters
+
+c.iii)if(value == null, "Unbranded", value)
+
+c. iv) if(toNumber(value) > 100, 1, 0)
+
+c. v) if(value.contains("discount")== true , 1, 0)
+if(value.contains("sale")== true , 1, 0)
+if(value.contains("offer")== true , 1, 0)
+
+

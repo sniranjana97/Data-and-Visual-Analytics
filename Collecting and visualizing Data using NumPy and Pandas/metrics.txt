@@ -1,0 +1,10 @@
+Values of calculated metrics:
+
+Average Node Degree: Degree is number of edges incident on a node. Average degree is mean of degrees of all the nodes in the graph.
+Value: 1.58
+
+Diameter of the graph: Diameter is longest path in a graph. In other words, it is the maximum number of edges between any two nodes in a graph.
+Value: 8
+
+Average path length: Path length is minimum number of edges between two nodes. Average path length is the mean of path lengths between every two nodes in a graph.
+Value: 2.621

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>nsivasambu3</title>
+        <script type="text/javascript" src="d3/d3.v3.min.js"></script>
+    </head>
+    <style = "text/css">
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .axis text {
+            font-family: sans-serif;
+            font-size: 11px;
+        }
+    </style>
+    <body>
+        <script type="text/javascript">
+            //Width and height
+            var w = 600;
+            var h = 500;
+            var padding = 60;
+            var minimum_y = 300;
+            var minimum_x = 0;
+
+            //Dynamic, random dataset
+            var dataset = [];                   //Initialize empty array
+            var total = 100;             //Number of dummy data points to create
+            var xRange = 250;  //Max range of new x values
+            var yRange = 250;  //Max range of new y values
+            var xrangemin = 10;
+            var yrangemin = 10;
+            for (var i = 0; i < total; i++) {                   //Loop numDataPoints times
+                var x = Math.round(Math.random() * (250 - 10) + 10);    //Get x co-ordinate
+                var y = Math.round(Math.random() * (250 - 10) + 10);    //Get y co-ordinate
+                if(y < minimum_y){
+                  minimum_y = y;
+                  minimum_x = x;
+                }
+                dataset.push([x, y]);                 //Add co-ordinates to array
+            }
+
+            //Create scale functions
+            var xScale = d3.scale.linear()
+                                 .domain([0, d3.max(dataset, function(d) { return d[0]; })])
+                                 .range([padding, w - padding * 2]);
+
+            var yScale = d3.scale.linear()
+                                 .domain([0, d3.max(dataset, function(d) { return d[1]; })])
+                                 .range([h - padding, padding]);
+
+            var sScale = d3.scale.linear()
+                                 .domain([0, d3.max(dataset, function(d) { return d[0]; })])
+                                 .range([10,250])
+
+            //Define X axis
+            var xAxis = d3.svg.axis()
+                              .scale(xScale)
+                              .orient("bottom")
+                              .ticks(11);
+
+            //Define Y axis
+            var yAxis = d3.svg.axis()
+                              .scale(yScale)
+                              .orient("left")
+                              .ticks(11);
+
+            //Average value of sizes of all points. Colors will be decided according to this.
+            var avg = d3.mean(dataset, function(d) { return sScale(d[0]); });
+
+            //Create SVG element
+            var svg = d3.select("body")
+                        .append("svg")
+                        .attr("width", w)
+                        .attr("height", h);
+
+            //Full name as title
+            var text = svg.append("text").attr("x", "200").attr("y","40").attr("font-size", "20").text("nsivasambu3");
+
+            var group = svg.append("g");
+
+            //Create symbols
+            group.selectAll("path")
+               .data(dataset)
+               .enter()
+               .append("path")
+               .attr("d", d3.svg.symbol()
+                 .size(function(d){ return sScale(d[0]); })
+                 .type(function(d, i) { if
+                    (i < 30) { return "circle"; }
+                    else { return "circle";}
+                  }))
+               .attr("stroke", function(d) { if
+                    (sScale(d[0]) <= avg) { return "green"; }
+                    else { return "blue";}
+                  })
+               .attr("fill", function(d) { if
+                    (sScale(d[0]) <= avg) { return "none"; }
+                    else { return "none";}
+                  })
+               .attr("transform",function(d){ return "translate(" + xScale(d[0]) + "," + yScale(d[1]) + ")"; });
+
+            //Create X axis
+            svg.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0," + (h - padding) + ")")
+                .call(xAxis);
+
+            //Create Y axis
+            svg.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(" + padding + ",0)")
+                .call(yAxis);
+
+            //minimum y axis
+            svg.append("text")
+               .attr("font-size", "20")
+               .attr("x", xScale(minimum_x)).attr("y",yScale(minimum_y))
+               .text("Y Min =" + minimum_y);
+
+        </script>
+    </body>
+</html>

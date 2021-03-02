@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>nsivasambu3</title>
+    <script type= "text/javascript" src="../lib/d3.v5.min.js"></script>
+    <script type="text/javascript" src="../lib/d3-tip.min.js"></script>
+</head>
+<style type="text/css">
+	rect {
+		stroke: silver;
+		stroke-width: 2px;
+        shape-rendering: crispEdges;
+	}
+	text {
+        font-family: sans-serif;
+        font-size: 14px;
+    }
+	.legend rect {
+		stroke: none;
+	}
+	.xaxis text {
+		font-family: sans-serif;
+        font-size: 11px;
+	}
+
+	.tile {
+  shape-rendering: crispEdges;
+	}
+
+	.label {
+  font-weight: bold;
+}
+
+</style>
+<body>
+<select> </select>
+    <div>
+       <left> <div id = "select"><b> Year </b></div></left>
+    </br></br>
+        <div id = "heatmap"> </divh3
+    </dh3v>
+<script type="text/javascript">
+
+var options = ["2011", "2012", "2013", "2014", "2015"];
+var borough = ["Bronx", "Brooklyn", "Manhattan", "Queens", "Staten Island"];
+var crimes = ["Assault", "Burglary", "Housing", "Murder", "Robbery", "Shooting"]
+
+var margin = {top: 75, right: 250, bottom: 400, left: 200},
+    width = 1100 - margin.left - margin.right,
+    height = 900 - margin.top - margin.bottom ;
+
+var select = d3.select('select')
+  				.attr('class','select')
+  				.style('top', -margin.top)
+    			.on('change', onchange)
+
+var optionsList = select
+  	.selectAll('option')
+	.data(options).enter()
+	.append('option')
+	.text(function (d) { return d; });
+
+addHeatmap("2011");
+
+function onchange(){
+	addHeatmap(d3.select('select').property('value'));
+}
+
+function addHeatmap(selectValue) {
+
+	d3.csv("heatmap.csv").then(function(data) {
+		var buckets = [];
+	  	data.forEach(function(d) {
+		  	if(d["Year"] == selectValue){
+		  		var i;
+		  		for(i = 0; i < 5; i++){
+		  			var bucket = {};
+		  			bucket.x = d.CrimeType;
+		  			bucket.y = borough[i];
+		  			bucket.count = +d[borough[i]];
+		  			buckets.push(bucket);
+		  		}
+			}
+	 	});
+
+
+	 	var xScale = d3.scalePoint().range([margin.left, width]).domain(crimes),
+			yScale = d3.scalePoint().range([margin.top, height]).domain(borough),
+			colorScale = d3.scaleLinear().range(["#fff7f3", "#fde0dd", "#fcc5c0", "#fa9fb5", "#f768a1", "#dd3497", "#ae017e", "#7a0177", "#49006a"]);
+
+	  	var xWidth = xScale(crimes[1]) - xScale(crimes[0]);
+	  	var yWidth = yScale(borough[1]) - yScale(borough[0]);
+	  	maxCount = d3.max(buckets, function(d) { return d.count; });
+	  	var step = maxCount / 8;
+	  	colorScale.domain(d3.range(0, maxCount + step, step));
+
+	  	d3.select("svg").remove();
+
+	  	var svg = d3.select("div").append("svg")
+		.attr("transform", "translate(" + margin.left + ",0)")
+	    .attr("width", width + margin.left + margin.right)
+	    .attr("height", height + margin.bottom)
+
+	  	svg.selectAll(".tile")
+	      	.data(buckets)
+	    	.enter().append("rect")
+	      	.attr("class", "tile")
+	      	.attr("x", function(d) { return xScale(d.x); })
+	      	.attr("y", function(d) { return yScale(d.y); })
+	      	.attr("rx", 4)
+	      	.attr("ry", 4)
+	      	.attr("width", xWidth)
+	      	.attr("height",  yWidth)
+	      	.style("fill", function(d) { return colorScale(d.count); });
+
+	    var title = svg.append("text").attr("x",margin.left + width / 8).attr("y",margin.top/2).text("Visualizing crimes in New York City").style("font-weight","bold").style("font-size","18px");
+
+	    svg.append("text").attr("text-anchor","end")
+	    	.attr("x",margin.left - 15).attr("y", margin.top).text("Borough").style("font-weight","bold")
+
+	    svg.selectAll(".yaxis")
+	    	.data(borough)
+	    	.enter()
+	    	.append("text")
+	    	.attr("text-anchor","end")
+	    	.attr("x",margin.left - 15)
+	    	.attr("y",function(d, i) {
+	    		return yScale(d) + yWidth / 2;
+	    	})
+	    	.text(function(d) { return d});
+
+	    svg.selectAll(".xaxis")
+	    	.data(crimes)
+	    	.enter()
+	    	.append("text")
+	    	.attr("x", -(height + margin.bottom / 3 ))
+	    	.attr("text-anchor","end")
+	    	.attr("y", function(d) { return xScale(d) + xWidth / 2})
+	    	.attr("transform", "rotate(-90)")
+	    	.text(function(d) { return d});
+
+	   	svg.append("text").attr("x", -(height + margin.bottom / 3))
+	    	.attr("text-anchor","end")
+	    	.attr("y", width + xWidth * 1.2)
+	    	.attr("transform", "rotate(-90)")
+	    	.style("font-weight","bold")
+	    	.text("Crime Type");
+
+		// Add a legend for the color values.
+	    var format = d3.format(".0f");
+	 	var legend = svg.selectAll(".legend")
+	      				.data(colorScale.domain().map(function(d) {return format(d);}))
+	    				.enter().append("g")
+	      				.attr("class", "legend")
+	      				.attr("transform", function(d, i) { return "translate(" + (margin.left + i * 55)+ "," + (height + margin.bottom / 1.5)  + ")"; });
+
+	    svg.append("text").attr("x", margin.left)
+	    	.attr("y", height + margin.bottom / 1.75)
+	    	.style("font-weight","bold")
+	    	.text("No.of Crimes");
+
+	  	legend.append("rect")
+	      	.attr("width", 55)
+	      	.attr("height", 35)
+	      	.style("fill", colorScale);
+
+	  	legend.append("text")
+	      	.attr("dy", "50px")
+	      	.text(String);
+
+	});
+};
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>nsivasambu3</title>
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+</head>
+<style = "text/css">
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: black;
+        shape-rendering: crispEdges;
+    }
+
+    .axis text {
+        font-family: sans-serif;
+        font-size: 11px;
+    }
+</style>
+<body>
+    <script type="text/javascript">
+        //obtain the data required
+        var data = [{country: 'Bangladesh', population_2012: 105905297, growth: {year_2013:42488 , year_2014:934 , year_2015:52633 , year_2016:112822 , year_2017:160792}},
+    {country: 'Ethopia', population_2012: 75656319, growth: {year_2013:1606010 , year_2014:1606705 , year_2015:1600666 , year_2016:1590077 , year_2017:1580805}},
+    {country: 'Kenya', population_2012: 33007327, growth: {year_2013:705153 , year_2014:703994 , year_2015:699906 , year_2016:694295 , year_2017:687910}},
+    {country: 'Afghanistan', population_2012: 23280573, growth: {year_2013:717151 , year_2014:706082 , year_2015:665025 , year_2016:616262 , year_2017:573643}},
+    {country: 'Morocco', population_2012: 13619520, growth: {year_2013:11862 , year_2014:7997 , year_2015:391 , year_2016:-8820 , year_2017:-17029}}
+            ];
+
+        var cumPopulation = data.map(function (d){
+            var x = d;
+            x.cumPopulation = d.population_2012 + d.growth.year_2013 + d.growth.year_2014 + d.growth.year_2015 + d.growth.year_2016 + d.growth.year_2017;
+            return x;
+        }).sort( function (a,b) {
+            if(a.cumPopulation < b.cumPopulation)
+                return 1;
+            else if(a.cumPopulation == b.cum)
+                return 0;
+            else
+                return -1;
+        });
+        //set dimensions and margins
+        var width = 1200;
+        var height = 500;
+        var padding = 100;
+
+        var barWidth = 2 * width / 3;
+        var graphWidth = width - barWidth;
+        var graphHeight = height / 2;
+
+        //append svg element to the body of the page
+        var svg = d3.select("body")
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+
+        var barGroup = svg.append("g").attr("height", height).attr("width", barWidth);
+
+        var xScale = d3.scaleLinear()
+                            .range([0, barWidth - padding])
+                            .domain([0, d3.max(cumPopulation, function(d) {return d.cumPopulation;})]);
+
+        var yScale = d3.scaleLinear()
+                            .range([height, padding])
+                            .domain([1, data.length]);
+
+        var barHeight = ((height - padding) / data.length) - 10;
+
+        var bars = barGroup.selectAll("g").data(cumPopulation).enter().append("g").attr("transform", function(d,i) {return "translate (" + padding + " , " + ((i + 1) * barHeight) + ")"}).on("mouseover", function(d) {onMouseover(d, this); })
+                                .on("mouseout", function(d) {onMouseout(d, this)});
+
+        bars.append("rect").attr("width", function(d) { return xScale(d.cumPopulation); })
+                                .attr("height", barHeight - 20).style("fill", "gray");
+
+        var dispStyle = d3.format(",");
+
+        bars.append("text").attr("x", 20).attr("y", barHeight / 2).text(function(d) { return dispStyle(d.cumPopulation); }).style("fill", "white");
+
+        var label = barGroup.selectAll("labels").data(cumPopulation).enter().append("text").attr("x", 80).attr("y", function(d,i) {return (i + 1) * barHeight + barHeight / 2 }).text(function(d) { return d.country; }).style("fill", "gray").attr("text-anchor", "end");
+
+        barGroup.append("text")
+                .attr("transform", "translate(" + (padding) + "," + (height - padding / 2)  + ")")
+                .text("Bars representing total rural population of each country").style("font-size", "16").style("font-family", "sans-serif").style("font-weight", "bold").style("fill", "#404040");
+
+        var onMouseover = function(data, obj) {
+            var linegroup = svg.append("g").attr("class", "linegraph").attr("transform", "translate("+ barWidth + " , " + "0)")
+                                            .attr("width", graphWidth).attr("height", graphHeight);
+            d3.select(obj).select("rect").style("fill", "steelblue");
+            line = [];
+            var country = data.country;
+            var i;
+            var population = data.population_2012;
+            for(i=2013;i<=2017;i++) {
+                var graphData = {};
+                graphData.year = i;
+                graphData.val = (+data.growth["year_" + i] / population) * 100;
+                line.push(graphData);
+                population = population + data.growth["year_" + i];
+            }
+
+            var graphPadding = 50;
+
+            var scaleY = d3.scaleLinear()
+                            .range([graphHeight, padding/4])
+                            .domain([d3.min(line, function(d) {return d.val;}), d3.max(line, function(d) {return d.val;})]);
+
+            var scaleX = d3.scaleLinear()
+                            .range([graphPadding, graphWidth-graphPadding])
+                            .domain([2013, 2017]);
+
+            var l = d3.line()
+                        .x(function(d) { return scaleX(d.year); })
+                        .y(function(d) { return scaleY(d.val); });
+
+            var xAxis = d3.axisBottom(scaleX)
+                          .tickFormat(d3.format("d"))
+                          .tickValues([2013,2014,2015,2016,2017]);
+
+            var yAxis = d3.axisLeft()
+                          .scale(scaleY);
+
+            linegroup.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0" +  "," + graphHeight + ")")
+                .call(xAxis);
+
+            linegroup.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(" + (graphPadding) + ",0)")
+                .call(yAxis)
+
+            linegroup.append("text")
+                .attr("transform", "translate(" + ((graphWidth - graphPadding) / 2) + "," + (graphHeight + graphPadding / 1.5) + ")")
+                .text("Year");
+
+            linegroup.append("text")
+                .attr("transform", "translate(" + (graphPadding / 3) + " , " + (2 * graphHeight / 3) + ") rotate(-90)")
+                .text("% Growth");
+
+            linegroup.append("text")
+                .attr("transform", "translate(" + (graphPadding) + "," + (graphHeight + graphPadding)  + ")")
+                .text("Line chart representing percentage of growth of " + data.country).style("font-size", "10px").style("font-family", "sans-serif").style("font-weight", "bold").style("fill", "#404040");
+
+            linegroup.selectAll("path")
+                      .data(line)
+                      .enter()
+                      .append("path")
+                      .attr("fill", "none")
+                      .attr("stroke", "steelblue")
+                      .attr("stroke-linejoin", "round")
+                      .attr("stroke-linecap", "round")
+                      .attr("stroke-width", 1.5)
+                      .attr("d", l(line));
+        }
+
+        var onMouseout = function(data, obj) {
+            d3.selectAll(".linegraph").remove();
+            d3.selectAll(".axis").remove();
+            d3.select(obj).select("rect").style("fill", "gray");
+        }
+
+    </script>
+</body>
+</html>
